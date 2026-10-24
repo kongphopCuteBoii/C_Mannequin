@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CuteBoii's Mannequin</title>
+<link rel="stylesheet" href="./css/app.css">
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="top">
+      <div class="modebar">
+        <button data-mode-btn="man" class="on">Mannequin</button>
+        <button data-mode-btn="human">Human</button>
+      </div>
+      <div class="tabs">
+        <button data-tab="pose" class="on">Pose</button>
+        <button data-tab="body">Body</button>
+        <button data-tab="props">Props</button>
+        <button data-tab="view">View</button>
+        <button data-tab="save">Save</button>
+      </div>
+    </div>
+
+    <section class="pane on" id="pane-pose">
+      <h3>Pose library</h3>
+      <input type="text" id="libFilter" placeholder="Search poses…">
+      <div id="libList"></div>
+      <div class="toolbar"><button id="libSave">Save current</button><button id="libImport">Import…</button><button id="libExpPose">Export pose</button><button id="libExpAll">Export all</button></div>
+      <input type="file" id="libFile" accept=".json,.bvh" multiple hidden>
+      <input type="text" id="libUrl" placeholder="…or paste a .bvh / .json link and press Enter">
+      <div id="bvhBox"></div><div class="note" id="libStat"></div>
+      <div class="toolbar">
+        <button id="undo">Undo</button><button id="redo">Redo</button>
+        <button id="flip">Flip L↔R</button><button id="resetPose">Reset pose</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="mirror"> Mirror edits to the other side</label>
+      <label class="chk"><input type="checkbox" id="ground" checked> Keep body on the floor</label>
+      <h3>Gizmo &amp; rig tools</h3>
+      <div class="chips" id="gzChips"><button data-gz="joint">Rotate joint</button><button data-gz="move">Move body</button><button data-gz="spin">Rotate body</button><button data-gz="off">Off</button></div>
+      <label class="chk"><input type="checkbox" id="oSkel"> Show skeleton</label>
+      <div class="toolbar"><button id="symL">Copy L→R</button><button id="symR">Copy R→L</button><button id="rndPose">Random pose</button></div>
+      <h3>Pick a joint <span style="text-transform:none;letter-spacing:0">(or click a dot / the figure)</span></h3>
+      <div class="jgrid" id="jointGrid"></div>
+      <h3 id="jointTitle"></h3>
+      <div id="jointSliders"></div>
+      <div class="toolbar"><button id="resetJoint">Reset this joint</button></div>
+      <p class="note">Drag the dots on the figure to pose it. Left / right means the figure's own left and right. Double-click a slider to reset it.</p>
+    </section>
+
+    <section class="pane" id="pane-body">
+      <div id="heads"></div>
+      <div id="manBody" data-only="man">
+        <h3>Body presets</h3>
+        <div class="chips" id="bodyChips"></div>
+        <div id="bodySliders"></div>
+        <div class="toolbar"><button id="resetBody">Reset body</button></div>
+      </div>
+      <div id="humBody" data-only="human" hidden>
+        <h3>Human model</h3>
+        <div class="stat" id="humStat">Not loaded</div>
+        <div class="toolbar"><button id="humReload">Reload</button><button id="humFile">Load .glb file…</button></div>
+        <input type="file" id="humFileIn" accept=".glb,.gltf" hidden>
+        <details><summary>Model source</summary>
+          <input type="text" id="humUrl">
+          <div class="note">A folder URL containing base_body.glb, or a direct link to a .glb.</div>
+        </details>
+        <label class="chk"><input type="checkbox" id="oUnder" checked> Underwear layer</label>
+        <h3>Body presets</h3>
+        <div class="chips" id="humChips"></div>
+        <div id="humSliders"></div>
+        <div class="toolbar"><button id="resetHum">Reset body</button></div>
+        <details><summary>All model morphs (advanced)</summary>
+          <input type="text" id="mfilter" placeholder="filter by name…">
+          <div id="mlist"></div>
+        </details>
+      </div>
+    </section>
+
+    <section class="pane" id="pane-props">
+      <h3>Add prop</h3><div class="chips" id="propChips"></div>
+      <h3 id="propTitle">No prop selected</h3>
+      <div class="toolbar"><button data-pm="translate">Move</button><button data-pm="rotate">Rotate</button><button data-pm="scale">Scale</button></div>
+      <label class="chk"><input type="checkbox" id="pSnap"> Snap (5 cm / 15°)</label>
+      <div class="toolbar"><button id="pDup">Duplicate</button><button id="pFloor">Drop to floor</button><button id="pDel">Delete</button><button id="pClear">Clear all</button></div>
+      <p class="note">Click a prop in the view to select it. Click the figure to go back to posing.</p>
+    </section>
+
+    <section class="pane" id="pane-save">
+      <h3>Project</h3>
+      <input type="text" id="prjName" placeholder="Project name">
+      <div class="toolbar"><button id="prjSave">Save project</button><button id="prjDl">Download file</button><button id="prjOpen">Open file…</button></div>
+      <div id="prjList"></div>
+      <h3>Body config</h3>
+      <input type="text" id="bodyName" placeholder="Config name">
+      <div class="toolbar"><button id="bodySave">Save body</button><button id="bodyDl">Download file</button></div>
+      <div id="bodyList"></div>
+      <h3>History</h3>
+      <p class="note">Your last 40 steps are kept in this browser and survive reloads. Undo and Redo are on the Pose tab, or use Ctrl+Z.</p>
+      <div class="toolbar"><button id="histClear">Clear history</button></div>
+      <input type="file" id="prjFileIn" accept=".json" hidden>
+      <div class="note" id="prjStat"></div>
+    </section>
+
+    <section class="pane" id="pane-view">
+      <h3>Look</h3>
+      <label class="fld">Theme<select id="theme"><option value="light">Light</option><option value="dark">Dark</option></select></label>
+      <label class="fld">Language<select id="lang"><option value="en">English</option><option value="th">ไทย</option></select></label>
+      <label class="fld">Shading
+        <select id="shading"><option value="clay">Soft clay</option><option value="toon">Hard light (4 values)</option><option value="chalk">White chalk</option></select>
+      </label>
+      <label class="fld">Background
+        <select id="bg"><option value="dark">Dark</option><option value="mid">Mid grey</option><option value="light">Paper</option></select>
+      </label>
+      <div id="lightSliders"></div>
+      <label class="chk"><input type="checkbox" id="oShadows" checked> Cast shadow</label>
+      <label class="chk"><input type="checkbox" id="oGrid" checked> Floor grid</label>
+      <label class="chk"><input type="checkbox" id="oRuler"> Head-unit ruler</label>
+      <label class="chk"><input type="checkbox" id="oHi" checked> Highlight selected part</label>
+      <label class="chk"><input type="checkbox" id="oHandles" checked> Joint handles (drag to pose)</label>
+      <h3>Files</h3>
+      <div class="toolbar"><button id="shot">Save PNG</button><button id="save">Save pose</button><button id="load">Load pose</button></div>
+      <input type="file" id="file" accept=".json,application/json" hidden>
+    </section>
+  </aside>
+
+  <main class="main">
+    <div id="view"></div>
+    <div class="views">
+      <button data-view="front">Front</button><button data-view="side">Side</button>
+      <button data-view="back">Back</button><button data-view="three">3/4</button>
+      <button data-view="top">Top</button><button id="frame">Frame</button>
+    </div>
+    <div class="tag">FORM / STUDY VIEW</div>
+    <div class="hint">Drag a dot to pose · Click a part to select · Left-drag orbit · Middle / right-drag or two fingers to pan · Scroll or pinch to zoom</div>
+  </main>
+</div>
+<div class="brand-watermark" aria-hidden="true">CuteBoii's Mannequin</div>
+<div id="welcomeWin" role="dialog" aria-labelledby="welcomeTitle" aria-describedby="welcomeMessage" hidden>
+  <div class="welcome-titlebar">
+    <span id="welcomeTitle">CuteBoii's Mannequin</span>
+    <button class="welcome-close" id="welcomeClose" type="button" aria-label="Close">×</button>
+  </div>
+  <div class="welcome-content"><p id="welcomeMessage"></p></div>
+  <div class="welcome-actions">
+    <label class="welcome-dont"><input id="welcomeDontShow" type="checkbox"> <span id="welcomeDontLabel">Don't show again</span></label>
+    <button class="welcome-ok" id="welcomeOk" type="button">Got it</button>
+  </div>
+</div>
+
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
