@@ -71,3 +71,22 @@ html,body{font:16px/1.4 "DB Heavent","Sarabun","Leelawadee UI","Noto Sans Thai",
 #welcomeWin .welcome-dont input{accent-color:var(--text)}
 #welcomeWin .welcome-ok{border:0;border-radius:6px;background:var(--accent);color:var(--onacc);padding:6px 14px;font:inherit;cursor:pointer}
 @media(max-width:480px){#welcomeWin{top:8px;left:8px;width:calc(100vw - 16px)}}
+
+
+/* First-visit language selection: full-screen gate, separate from the welcome note. */
+.language-gate{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;padding:22px;background:rgba(12,14,16,.78);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);font:16px/1.5 "DB Heavent","Sarabun","Leelawadee UI","Noto Sans Thai",system-ui,sans-serif;color:#242321}
+.language-card{width:min(440px,100%);padding:30px;background:#fbfaf8;border:1px solid rgba(255,255,255,.35);border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.36)}
+.language-kicker{font-size:11px;font-weight:700;letter-spacing:.16em;color:#858078}
+.language-card h1{margin:12px 0 6px;font-size:clamp(25px,5vw,32px);line-height:1.12;letter-spacing:-.025em;color:#22211f}
+.language-card p{margin:0 0 22px;color:#6f6b64;font-size:16px}
+#languageGateForm{display:grid;gap:10px}
+.language-option{position:relative;display:flex;align-items:center;gap:12px;padding:13px 15px;border:1px solid #dedbd5;border-radius:12px;background:#fff;cursor:pointer;transition:border-color .15s,background .15s}
+.language-option input{position:absolute;opacity:0;width:1px;height:1px}
+.language-tick{width:21px;height:21px;flex:0 0 21px;border:1.5px solid #aaa49a;border-radius:6px;background:#fff;display:grid;place-items:center}
+.language-option input:checked+.language-tick{background:#252421;border-color:#252421}
+.language-option input:checked+.language-tick:after{content:"✓";color:#fff;font-size:15px;font-weight:700;line-height:1}
+.language-option:has(input:checked){border-color:#555149;background:#f3f1ed}
+.language-option input:focus-visible+.language-tick{outline:3px solid #9c988f;outline-offset:3px}
+.language-start{margin-top:8px;padding:12px 16px;border:0;border-radius:10px;background:#242321;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.language-start:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:480px){.language-card{padding:24px 20px;border-radius:15px}}
