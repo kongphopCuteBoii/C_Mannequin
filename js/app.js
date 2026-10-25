@@ -1670,7 +1670,7 @@ async function ingest(text,name){
 
 /* BVH import: position-based retarget (works whatever the file's rest pose or axes) */
 const BR=[[/^(hips|root|pelvis)$/,'pelvis'],[/femur|upleg|upperleg|thigh/,'hip'],[/tibia|calf|shin|lowerleg|leg$/,'knee'],[/foot|ankle/,'ankle'],
-  [/radius|forearm|lowerarm/,'elbow'],[/wrist|hand/,'wrist'],[/head$/,'head'],[/neck/,'neck']];
+  [/radius|forearm|lowerarm/,'elbow'],[/humerus|upperarm|^(left|right|l|r)?arm$/,'shoulder'],[/wrist|hand/,'wrist'],[/head$/,'head'],[/neck/,'neck']];
 const SIDE_T='(hipjoint|femur|tibia|foot|toe|clav|humerus|radius|wrist|hand|finger|thumb|upleg|upperleg|leg|arm|forearm|lowerarm|shoulder|thigh|calf|collar)';
 const sideOf=s=>new RegExp('^left|^l'+SIDE_T+'|[._\\- ]l$|[._\\- ]left').test(s)?'L':new RegExp('^right|^r'+SIDE_T+'|[._\\- ]r$|[._\\- ]right').test(s)?'R':null;
 function parseBVH(txt){
@@ -1717,29 +1717,35 @@ function bvhRoles(B){
   return R;
 }
 function bvhApply(f){
-  const B=bvh.B,R=bvh.R,W=bvhFK(B,f),P=k=>R[k]===undefined?null:new V3().setFromMatrixPosition(W[R[k]]);
-  const pp=P('pelvis'),nk=P('neck'),hd=P('head');
-  if(!pp||!nk) {libNote('This BVH frame is missing pelvis or neck positions.');return}
+  const B=bvh.B,R=bvh.R,W=bvhFK(B,f),P=k=>new V3().setFromMatrixPosition(W[R[k]]),has=k=>R[k]!==undefined;
+  const pp=P('hipL').add(P('hipR')).multiplyScalar(.5),nk=P('neck');
   const ax=new V3().subVectors(P('hipL'),P('hipR')).normalize(),ay=new V3().subVectors(nk,pp);
-  ay.addScaledVector(ax,-ay.dot(ax)).normalize();const az=new V3().crossVectors(ax,ay);
-  const loc=p=>{const d=p.clone().sub(pp);return new V3(d.dot(ax),d.dot(ay),d.dot(az))};
+  ay.addScaledVector(ax,-ay.dot(ax)).normalize();const az=new V3().crossVectors(ax,ay),Q0=figure.quaternion;
+  const dv=(a,b)=>{const d=b.clone().sub(a);return new V3(d.dot(ax),d.dot(ay),d.dot(az)).normalize().applyQuaternion(Q0)};
   const mm=opts.mirror;opts.mirror=false;
   pose=defaultPose();applyPose();
-  const o0=jpos('pelvis'),ours=jpos('neck').distanceTo(o0)+(jpos('ankleL').distanceTo(o0)+jpos('ankleR').distanceTo(o0))/2;
-  const theirs=nk.distanceTo(pp)+(P('ankleL').distanceTo(pp)+P('ankleR').distanceTo(pp))/2,s=ours/theirs;
-  const T=p=>loc(p).multiplyScalar(s).applyQuaternion(figure.quaternion).add(o0);
-  for(let pass=0;pass<2;pass++){
-    ikSolve(IKD.chest,T(nk));
-    if(hd){const dir=loc(hd).sub(loc(nk)).normalize().applyQuaternion(figure.quaternion);ikSolve(IKD.head,T(hd).addScaledVector(dir,effHead().distanceTo(jpos('head'))))}
-    for(const S of ['L','R'])for(const k of ['elbow','wrist','knee','ankle']){const p=P(k+S);if(p)ikSolve(IKD[k+S],T(p))}
+  const mid=jpos('hipL').add(jpos('hipR')).multiplyScalar(.5),dist=(a,b)=>jpos(a).distanceTo(jpos(b));
+  const Ln={neck:jpos('neck').distanceTo(mid),head:effHead().distanceTo(jpos('neck'))};
+  for(const S of ['L','R'])Ln[S]={u:dist('shoulder'+S,'elbow'+S),f:dist('elbow'+S,'wrist'+S),t:dist('hip'+S,'knee'+S),s:dist('knee'+S,'ankle'+S)};
+  for(let pass=0;pass<3;pass++){
+    ikSolve(IKD.chest,mid.clone().addScaledVector(dv(pp,nk),Ln.neck));
+    if(has('head'))ikSolve(IKD.head,jpos('neck').addScaledVector(dv(nk,P('head')),Ln.head));
+    for(const S of ['L','R']){
+      const L=Ln[S],p=k=>P(k+S);
+      if(has('elbow'+S))ikSolve(IKD['elbow'+S],jpos('shoulder'+S).addScaledVector(dv(p('shoulder'),p('elbow')),L.u));
+      if(has('elbow'+S)&&has('wrist'+S))ikSolve(IKD['wrist'+S],jpos('elbow'+S).addScaledVector(dv(p('elbow'),p('wrist')),L.f));
+      ikSolve(IKD['knee'+S],jpos('hip'+S).addScaledVector(dv(p('hip'),p('knee')),L.t));
+      ikSolve(IKD['ankle'+S],jpos('knee'+S).addScaledVector(dv(p('knee'),p('ankle')),L.s));
+    }
   }
   opts.mirror=mm;
   syncUI();applyAll();save();commit();commitGuard();
 }
 function bvhLoad(txt,name){
   let B;try{B=parseBVH(txt)}catch(e){libNote('Could not read that BVH ('+e.message+').');return}
-  const R=bvhRoles(B),miss=['pelvis','neck','hipL','hipR','kneeL','kneeR','ankleL','ankleR'].filter(k=>R[k]===undefined);
+  const R=bvhRoles(B),miss=['pelvis','neck','hipL','hipR','kneeL','kneeR','ankleL','ankleR','shoulderL','shoulderR'].filter(k=>R[k]===undefined);
   if(miss.length){libNote('Skeleton not recognised. Missing: '+miss.join(', ')+'.');return}
+  console.log('[FORM] BVH roles:',Object.fromEntries(Object.entries(R).map(([k,i])=>[k,B.J[i].name])));
   if(!rigReady()){libNote('Load a model with a working rig first.');return}
   bvh={B,R,name,f:0};
   const box=$('#bvhBox');box.innerHTML='';
