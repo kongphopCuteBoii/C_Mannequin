@@ -1,29 +1,24 @@
 # CuteBoii's Mannequin
 
-## Project layout
+A browser-based 3D mannequin for posing, figure study, and scene reference. Built around the idea that useful creative tools should remain accessible, it brings adjustable figures and practical posing controls into a lightweight web app.
 
-- `index.html` — app shell and import map.
-- `css/app.css` — all application styling.
-- `js/app.js` — Three.js scene, UI, mannequin, posing, props, persistence, and app orchestration.
-- `js/translations.js` — Thai UI dictionary and dynamic status-message translations.
-- `js/welcome.js` — independent bilingual welcome window.
-- `js/language-select.js` — first-visit language picker; remembers the choice and reloads once.
-- `js/config.js` — external human-model URLs and model-name safety filter.
+## Goals
 
-## Run locally
+- Making figure posing and reference more accessible.
+- Providing direct control over joints, body proportions, and scene props.
+- Keeping projects portable through import and export rather than locking work into the browser.
 
-Because the app uses JavaScript modules and an import map, open it through a local HTTP server rather than directly as `file://`. From this folder, run:
+## Development
 
-```bash
-python -m http.server 8000
-```
+The app includes a procedural mannequin, an optional morphable human model, pose presets, joint controls, and tools for arranging props. Poses and projects can be saved locally or exported as files.
 
-Then open `http://localhost:8000`. It also works on static hosting as long as the folder structure is preserved.
+- **Platform:** Web browsers
+- **3D rendering:** Three.js
+- **Interface:** English and Thai
+- **Project status:** Work in progress
 
-## Deployment notes
+The app runs as a static website. Three.js is loaded from a CDN, and the optional external human model requires an internet connection.
 
-- Keep all paths and filenames intact when uploading.
-- The app loads Three.js from jsDelivr and the optional human model from an external repository, so those features require network access.
-- The model URL currently uses a moving `@master` reference; pin it to a reviewed commit before a long-term public release.
-- The DB Heavent font is externally hosted; confirm its licence and Thai glyph coverage before public launch.
-- This refactor separates stable modules while preserving the existing application logic. It improves maintainability; it is not a claim that all runtime bottlenecks have been profiled or eliminated.
+---
+
+*An independent creative tool built to make posing more accessible.*
