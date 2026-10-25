@@ -1717,7 +1717,19 @@ function bvhRoles(B){
   return R;
 }
 const EQ=new THREE.Euler(),rotQ=(x,y,z,o)=>new Q().setFromEuler(EQ.set(x,y,z,o));
+const BVH_DEBUG=true;   // set to false when done
+const dbgLines=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0x33bbff,depthTest:false}));
+dbgLines.renderOrder=7;dbgLines.frustumCulled=false;scene.add(dbgLines);
+function bvhDebug(f){
+  dbgLines.visible=BVH_DEBUG;if(!BVH_DEBUG)return;
+  const B=bvh.B,W=bvhFK(B,f),P=W.map(m=>new V3().setFromMatrixPosition(m)),bb=new THREE.Box3().setFromPoints(P),sz=bb.getSize(new V3());
+  const s=1.6/Math.max(sz.x,sz.y,sz.z),c=bb.getCenter(new V3()),a=[];
+  for(const j of B.J)if(j.par)for(const v of [P[j.par.idx],P[j.idx]])a.push((v.x-c.x)*s+1.4,(v.y-bb.min.y)*s,(v.z-c.z)*s);
+  dbgLines.geometry.setAttribute('position',new THREE.Float32BufferAttribute(a,3));
+  console.log('[FORM] BVH',{frames:B.N,channels:B.nc,root:B.J[0].name+': '+B.J[0].ch.join(' '),second:(B.J[1]||{}).name+': '+((B.J[1]||{}).ch||[]).join(' ')});
+}
 function bvhApply(f){
+  bvhDebug(f);
   const B=bvh.B,R=bvh.R,W=bvhFK(B,f),P=k=>new V3().setFromMatrixPosition(W[R[k]]),has=k=>R[k]!==undefined;
   const pp=P('hipL').add(P('hipR')).multiplyScalar(.5),nk=P('neck');
   const ax=new V3().subVectors(P('hipL'),P('hipR')).normalize(),ay=new V3().subVectors(nk,pp);
