@@ -1729,7 +1729,6 @@ function bvhDebug(f){
   console.log('[FORM] BVH',{frames:B.N,channels:B.nc,root:B.J[0].name+': '+B.J[0].ch.join(' '),second:(B.J[1]||{}).name+': '+((B.J[1]||{}).ch||[]).join(' ')});
 }
 function bvhApply(f){
-  bvhDebug(f);
   const B=bvh.B,R=bvh.R,W=bvhFK(B,f),P=k=>new V3().setFromMatrixPosition(W[R[k]]),has=k=>R[k]!==undefined;
   const pp=P('hipL').add(P('hipR')).multiplyScalar(.5),nk=P('neck');
   const ax=new V3().subVectors(P('hipL'),P('hipR')).normalize(),ay=new V3().subVectors(nk,pp);
@@ -1742,6 +1741,17 @@ function bvhApply(f){
   const mid=jpos('hipL').add(jpos('hipR')).multiplyScalar(.5),dist=(a,b)=>jpos(a).distanceTo(jpos(b));
   const Ln={neck:jpos('neck').distanceTo(mid),head:effHead().distanceTo(jpos('neck'))};
   for(const S of ['L','R'])Ln[S]={u:dist('shoulder'+S,'elbow'+S),f:dist('elbow'+S,'wrist'+S),t:dist('hip'+S,'knee'+S),s:dist('knee'+S,'ankle'+S)};
+  if(BVH_DEBUG){
+    dbgLines.material.color.set(0x44ff88);
+    const a=[],seg=(p,q)=>a.push(p.x,p.y,p.z,q.x,q.y,q.z),nT=mid.clone().addScaledVector(dv(pp,nk),Ln.neck);
+    seg(mid,nT);
+    for(const S of ['L','R']){
+      const sh=jpos('shoulder'+S),e=sh.clone().addScaledVector(dv(P('shoulder'+S),P('elbow'+S)),Ln[S].u),w=e.clone().addScaledVector(dv(P('elbow'+S),P('wrist'+S)),Ln[S].f);
+      const hp=jpos('hip'+S),k=hp.clone().addScaledVector(dv(P('hip'+S),P('knee'+S)),Ln[S].t),an=k.clone().addScaledVector(dv(P('knee'+S),P('ankle'+S)),Ln[S].s);
+      seg(nT,sh);seg(sh,e);seg(e,w);seg(mid,hp);seg(hp,k);seg(k,an);
+    }
+    dbgLines.geometry.setAttribute('position',new THREE.Float32BufferAttribute(a,3));dbgLines.visible=true;
+  }
   const spine=()=>{
     ikSolve(IKD.chest,mid.clone().addScaledVector(dv(pp,nk),Ln.neck));
     if(has('head'))ikSolve(IKD.head,jpos('neck').addScaledVector(dv(nk,P('head')),Ln.head));
