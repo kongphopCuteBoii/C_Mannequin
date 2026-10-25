@@ -1716,20 +1716,47 @@ function bvhRoles(B){
   }
   return R;
 }
+const EQ=new THREE.Euler(),rotQ=(x,y,z,o)=>new Q().setFromEuler(EQ.set(x,y,z,o));
 function bvhApply(f){
   const B=bvh.B,R=bvh.R,W=bvhFK(B,f),P=k=>new V3().setFromMatrixPosition(W[R[k]]),has=k=>R[k]!==undefined;
   const pp=P('hipL').add(P('hipR')).multiplyScalar(.5),nk=P('neck');
   const ax=new V3().subVectors(P('hipL'),P('hipR')).normalize(),ay=new V3().subVectors(nk,pp);
-  ay.addScaledVector(ax,-ay.dot(ax)).normalize();const az=new V3().crossVectors(ax,ay);
-  const dv=(a,b)=>{const d=b.clone().sub(a);return new V3(d.dot(ax),d.dot(ay),d.dot(az)).normalize().applyQuaternion(figure.quaternion)};
+  ay.addScaledVector(ax,-ay.dot(ax)).normalize();const az=new V3().crossVectors(ax,ay),Q0=figure.quaternion;
+  const dv=(a,b)=>{const d=b.clone().sub(a);return new V3(d.dot(ax),d.dot(ay),d.dot(az)).normalize().applyQuaternion(Q0)};
+  const loc=(k,d)=>d.clone().applyQuaternion(jointFrame(k,new Q()).invert());   // world direction -> the joint's parent frame
+  opts.guard=false;{const g=$('#oGuard');if(g)g.checked=false}
   const mm=opts.mirror;opts.mirror=false;
   pose=defaultPose();applyPose();
   const mid=jpos('hipL').add(jpos('hipR')).multiplyScalar(.5),dist=(a,b)=>jpos(a).distanceTo(jpos(b));
   const Ln={neck:jpos('neck').distanceTo(mid),head:effHead().distanceTo(jpos('neck'))};
   for(const S of ['L','R'])Ln[S]={u:dist('shoulder'+S,'elbow'+S),f:dist('elbow'+S,'wrist'+S),t:dist('hip'+S,'knee'+S),s:dist('knee'+S,'ankle'+S)};
-  for(let pass=0;pass<3;pass++){
+  const spine=()=>{
     ikSolve(IKD.chest,mid.clone().addScaledVector(dv(pp,nk),Ln.neck));
     if(has('head'))ikSolve(IKD.head,jpos('neck').addScaledVector(dv(nk,P('head')),Ln.head));
+  };
+  const seedArm=S=>{
+    const s=S==='L'?1:-1,ku='shoulder'+S,p=pose[ku],e=pose['elbow'+S];
+    const u=loc(ku,dv(P(ku),P('elbow'+S))),fd=loc(ku,dv(P('elbow'+S),P('wrist'+S)));
+    p.swing=clamp(Math.asin(clamp(u.z,-1,1))/DEG,-60,175);
+    p.raise=clamp(s*Math.atan2(u.x,-u.y)/DEG,-10,175);
+    const w=fd.clone().applyQuaternion(rotQ(-p.swing*DEG,0,s*p.raise*DEG,'ZXY').invert());
+    e.bend=clamp(Math.acos(clamp(-w.y,-1,1))/DEG,0,150);
+    p.twist=clamp(-s*Math.atan2(w.x,w.z)/DEG,-80,90);
+  };
+  const seedLeg=S=>{
+    const s=S==='L'?1:-1,kh='hip'+S,p=pose[kh],kn=pose['knee'+S];
+    const u=loc(kh,dv(P(kh),P('knee'+S))),fd=loc(kh,dv(P('knee'+S),P('ankle'+S)));
+    p.out=clamp(s*Math.asin(clamp(u.x,-1,1))/DEG,-25,50);
+    p.swing=clamp(-Math.atan2(-u.z,-u.y)/DEG,-30,125);
+    const w=fd.clone().applyQuaternion(rotQ(-p.swing*DEG,0,s*p.out*DEG,'XZY').invert());
+    kn.bend=clamp(Math.acos(clamp(-w.y,-1,1))/DEG,0,150);
+    p.twist=clamp(-s*Math.atan2(-w.x,-w.z)/DEG,-45,35);
+  };
+  spine();
+  for(const S of ['L','R']){if(has('elbow'+S)&&has('wrist'+S))seedArm(S);seedLeg(S)}
+  applyPose();
+  for(let pass=0;pass<2;pass++){
+    spine();
     for(const S of ['L','R']){
       const L=Ln[S],p=k=>P(k+S);
       if(has('elbow'+S))ikSolve(IKD['elbow'+S],jpos('shoulder'+S).addScaledVector(dv(p('shoulder'),p('elbow')),L.u));
@@ -1739,7 +1766,7 @@ function bvhApply(f){
     }
   }
   opts.mirror=mm;
-  syncUI();applyAll();save();commit();commitGuard();
+  syncUI();applyAll();save();commit();
 }
 function bvhLoad(txt,name){
   let B;try{B=parseBVH(txt)}catch(e){libNote('Could not read that BVH ('+e.message+').');return}
