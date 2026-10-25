@@ -1720,8 +1720,8 @@ function bvhApply(f){
   const B=bvh.B,R=bvh.R,W=bvhFK(B,f),P=k=>new V3().setFromMatrixPosition(W[R[k]]),has=k=>R[k]!==undefined;
   const pp=P('hipL').add(P('hipR')).multiplyScalar(.5),nk=P('neck');
   const ax=new V3().subVectors(P('hipL'),P('hipR')).normalize(),ay=new V3().subVectors(nk,pp);
-  ay.addScaledVector(ax,-ay.dot(ax)).normalize();const az=new V3().crossVectors(ax,ay),Q0=figure.quaternion;
-  const dv=(a,b)=>{const d=b.clone().sub(a);return new V3(d.dot(ax),d.dot(ay),d.dot(az)).normalize().applyQuaternion(Q0)};
+  ay.addScaledVector(ax,-ay.dot(ax)).normalize();const az=new V3().crossVectors(ax,ay);
+  const dv=(a,b)=>{const d=b.clone().sub(a);return new V3(d.dot(ax),d.dot(ay),d.dot(az)).normalize().applyQuaternion(figure.quaternion)};
   const mm=opts.mirror;opts.mirror=false;
   pose=defaultPose();applyPose();
   const mid=jpos('hipL').add(jpos('hipR')).multiplyScalar(.5),dist=(a,b)=>jpos(a).distanceTo(jpos(b));
